@@ -1,0 +1,35 @@
+---
+title: "Assignment 3: Market Report Chicago"
+author: "Clara Fong"
+date: "5/25/2021"
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      include = TRUE,
+                      warning = FALSE)
+```
+
+```{r load packages, include = FALSE}
+library(readr)
+library(here)
+library(sf)
+library(tmap)
+library(leaflet)
+library(data.table)
+library(tidyverse)
+```
+
+```{r loading data, include = FALSE}
+parks <- read_csv(here("Users", "dancingpanda", "Desktop", "college", "year 4", "GEOG 28702", "Assignments", "ParksRec", "CPD_Parks_Clean.csv"))
+
+```
+
+
+
+
