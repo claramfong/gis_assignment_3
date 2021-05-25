@@ -26,8 +26,9 @@ library(tidyverse)
 ```
 
 ```{r loading data, include = FALSE}
-parks <- read_csv(here("Users", "dancingpanda", "Desktop", "college", "year 4", "GEOG 28702", "Assignments", "ParksRec", "CPD_Parks_Clean.csv"))
-
+parks <- read_csv(here("CPD_Parks_Clean.csv"))
+housing <- read_csv(here("Affordable_Rental_Housing_Developments_clean.csv"))
+comm_area <- st_read()
 ```
 
 
