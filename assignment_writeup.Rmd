@@ -12,6 +12,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
                       include = TRUE,
+                      message = FALSE,
                       warning = FALSE)
 ```
 
@@ -25,6 +26,38 @@ library(data.table)
 library(tidyverse)
 ```
 
+# The Assignment Description
+
+Generate a market report for one Chicago community area using at least three measures. Your market report should have some theme, like a suite of health or transportation measures. Examples of measures could include accessibility to playgrounds, parks, or grocery stores, or rates of poverty, cancer, or income statistics.
+
+* At least 1 measure should have a more sophisticated spatial analytic technique used for implementation. This will likely be a measure of some resource access. This could be a point-in-polygon (PIP) operation, buffer analysis (count of buffers or union of buffers showing coverage), density surface, etc.
+
+* Additional measures can be visualized as points, lines, choropleth mapping, etc. (Choropleth mapping by itself is not considered the advanced analytic technique required for at least one measure.)
+
+* You can include as many maps as you need to for your final report: this may be 1 map with all measures shown, 3 maps each highlighting a different variable, etc.
+
+* You must include a summary of your market analysis, including (1) overview of your market and why you chose your measures, (2) description of data including source citations, (3) description of methods used to represent each measure, (4) a cohesive presentation and (5) discussion of the results. You should definitely note how different indicators for your community area exist in relation to its neighboring community areas. The summary can be brief (2-3 paragraphs) but must include the above. 
+
+It is recommended that you calculate measures for the entire dataset of Chicago community areas, and then zoom into to your area of interest. If there is no visualization/analysis/discussion of how resources or statistics vary between neighboring areas, you will not receive full credit.
+
+
+# Theme: Affordable housing and outdoor spaces
+
+I was interested in looking at the kinds of outdoor amenities/spaces in areas with high levels of afforable housing units. My initial thinking is that there might be a difference in terms of sheer numbers of outdoor spaces (e.g., parks, playgrounds, etc.) in communities with higher affordable housing units, but also taking into account the "accessibility" by distance of these spaces Specficially, I want to know whether park areas have a wide set of amenities overlap with community areas that have a high number of affordable housing units.
+
+I sourced my data from three data sets on the [Chicago Data Portal](https://data.cityofchicago.org/):
+
+* Affordable housing data
+  * It should be noted that this data was originally in csv format, and I converted to to point data for the analysis below
+  * For the sake of this assignment, I use the point data when combining the housing and park data because I wanted to create a chrolopeth map of the available amenities and units of affordable housing. However, as described below, I also wanted to conduct my own point-in-polygon operation on the housing data to demonstrate that I can do it.
+
+* Park data
+  * The park data available has the park geometry and several columns that count whether a certain amenity is present in the park. Originally, I hoped that I would be able to use the park data as points, but this did not seem plausible given the data structure. 
+  * I use the park data to build a chrolopleth map based on the available count information they have on specific amenities (namely, combining x.y.z)
+  
+* Dog-Friendly Parks data
+  * The last dataset I use is actually a subset from the park data, but they are points
+  
 ```{r loading data, include = FALSE}
 parks <- read_csv(here("CPD_Parks_Clean.csv"))
 
@@ -36,12 +69,55 @@ boundaries <- st_read("comm_boundaries")
 ```{r plotting housing csv to points}
 
 housing_pts <- st_as_sf(housing, coords = c("Longitude","Latitude"), crs = 4326)
-plot(housing_pts)
+#plot(housing_pts)
 
 #save cleaned data as shp file
-st_write(housing_pts,"afford_housing.shp")
+#st_write(housing_pts,"afford_housing.shp")
 
+#creating a master df
+#housing.parks.df <- housing_pts
+```
+
+```{r initial plot}
+#overlay point and polygons
+  ## 1st layer (gets plotted first)
+tm_shape(boundaries) + tm_borders(alpha = 0.4) + 
+  ## 2nd layer (overlay)
+  tm_shape(housing_pts) + tm_dots(size = 0.1, col="red") 
+
+#checking crs
+#st_crs(boundaries) 
+#st_crs(housing_pts)
+
+#not "exactly" the same, so change it slightly
+CRS.new <- st_crs(boundaries)
+housing_pts <- st_transform(housing_pts, CRS.new)
 ```
 
 
+```{r point in polygon for housing data}
+
+#spatial join
+housing_in_boundaries <- st_join(housing_pts, boundaries, join = st_within)
+
+#count crimes per tract
+housing_pip <- housing_in_boundaries %>% 
+  group_by(community) %>% 
+  count() %>% 
+  rename(afford_house_ct = n)
+
+housing_pip <- as.data.frame(housing_pip) %>% 
+    select(community, afford_house_ct)
+
+#merge to main df
+housing.parks.df <- merge(boundaries, housing_pip, by="community")
+#glimpse(housing.parks.df)
+```
+
+```{r plotting pip as chrolopleth map}
+tmap_mode("view")
+
+tm_shape(housing.parks.df) + 
+  tm_fill("afford_house_ct", n=8, pal = "BuPu", title="Number of Affordable Housing Units in Chicago")
+```
 
