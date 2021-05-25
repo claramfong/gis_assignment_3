@@ -27,12 +27,21 @@ library(tidyverse)
 
 ```{r loading data, include = FALSE}
 parks <- read_csv(here("CPD_Parks_Clean.csv"))
+
 housing <- read_csv(here("Affordable_Rental_Housing_Developments_clean.csv"))
 
-
-
+boundaries <- st_read("comm_boundaries")
 ```
 
+```{r plotting housing csv to points}
+
+housing_pts <- st_as_sf(housing, coords = c("Longitude","Latitude"), crs = 4326)
+plot(housing_pts)
+
+#save cleaned data as shp file
+st_write(housing_pts,"afford_housing.shp")
+
+```
 
 
 
