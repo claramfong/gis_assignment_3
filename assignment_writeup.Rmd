@@ -1,12 +1,12 @@
 ---
-title: "Assignment 3: Market Report Chicago"
+title: 'Assignment 3: Market Report Chicago'
 author: "Clara Fong"
 date: "5/25/2021"
-output: 
+always_allow_html: true
+output:
   html_document:
     theme: cosmo
-    toc: true
-    toc_float: true
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -78,7 +78,7 @@ housing_pts <- st_as_sf(housing, coords = c("Longitude","Latitude"), crs = 4326)
 #housing.parks.df <- housing_pts
 ```
 
-```{r initial plot}
+```{r initial housing plot}
 #overlay point and polygons
   ## 1st layer (gets plotted first)
 tm_shape(boundaries) + tm_borders(alpha = 0.4) + 
@@ -118,6 +118,6 @@ housing.parks.df <- merge(boundaries, housing_pip, by="community")
 tmap_mode("view")
 
 tm_shape(housing.parks.df) + 
-  tm_fill("afford_house_ct", n=8, pal = "BuPu", title="Number of Affordable Housing Units in Chicago")
+  tm_fill("afford_house_ct", n=8, pal = "PuBuGn", title="Number of Affordable Housing Units")
 ```
 
