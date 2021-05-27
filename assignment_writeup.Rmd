@@ -49,17 +49,21 @@ I was interested in looking at the kinds of outdoor amenities/spaces in areas wi
 
 I sourced my data from three data sets on the [Chicago Data Portal](https://data.cityofchicago.org/):
 
-* Affordable housing data
+* [Affordable rental housing developments data](https://data.cityofchicago.org/Community-Economic-Development/Affordable-Rental-Housing-Developments/s6ha-ppgi)
   + It should be noted that this data was originally in csv format, and I converted to to point data for the analysis below
   + For the sake of this assignment, I use the point data when combining the housing and park data because I wanted to create a chrolopeth map of the available amenities and units of affordable housing. However, as described below, I also wanted to conduct my own point-in-polygon operation on the housing data to demonstrate that I can do it.
 
-* Park data
+* [Park data](https://data.cityofchicago.org/Parks-Recreation/Parks-Chicago-Park-District-Park-Boundaries-curren/ej32-qgdr)
   + The park data available has the park geometry and several columns that count whether a certain amenity is present in the park. Originally, I hoped that I would be able to use the park data as points, but this did not seem plausible given the data structure. 
-  + I use the park data to build a chrolopleth map based on the available count information they have on specific amenities (namely, combining **x.y.z**)
+  + I use the park data to build a chrolopleth map based on the available count information they have on whether a park has a playground
   
-* Dog-Friendly Parks data
+* [Dog-Friendly Parks data](https://data.cityofchicago.org/Parks-Recreation/Parks-Dog-Friendly-Map-deprecated-November-2016-/p97q-qace)
   + The last dataset I use is actually a subset from the park data, but it is point data of specific parks that are "dog-friendly"
   + I have included the point data below as separate points from the parks and affordable housing data
+  + This data has ben depreciated as of 2016 (which it has since been combined with the previously mentioned park data). However, I wanted to practice plotting buffers and points, and the newer data does not have information on the coordinates for dog parks.
+
+## Market Overview
+
 
 
 ## Summary of Maps
@@ -70,12 +74,14 @@ Given the variability in the data types and the scope of what we've learned in c
   
   2. **Park areas and amenities**: plotting a chloropleth map of levels of amentities (specifically, I used variables that indicated a park had a playground, which is already counted by community area in the data)
   
-  3. **Dog parks points**: there aren't a lot of dog parks, but I wanted to identify where they were relative to the areas with large numbers of playgrounds
+  3. **Dog parks points**: there aren't a lot of dog parks, but I wanted to identify where they were relative to the areas with large numbers of playgrounds, and using a buffer analysis observe how much reach they have to neighborhoods that may have a higher number of affordable housing rentals
   
 ```{r loading data, include = FALSE}
-parks <- read_csv(here("CPD_Parks_Clean.csv"))
+parks <- st_read("parks")
 
 housing <- read_csv(here("Affordable_Rental_Housing_Developments_clean.csv"))
+
+dog_parks <- read_csv("dog_parks.csv")
 
 boundaries <- st_read("comm_boundaries")
 ```
@@ -114,8 +120,6 @@ tm_shape(boundaries) + tm_borders(alpha = 0.4) +
              size = 0.6,
              position=c("left", "bottom"))
 
-
-
 #checking crs
 #st_crs(boundaries) 
 #st_crs(housing_pts)
@@ -129,7 +133,7 @@ housing_pts <- st_transform(housing_pts, CRS.new)
 This map reflects two, maybe three, clusters of affordable housing units in the West and South of Chicago. This is something worth noting when exploring the kinds of areas that might have more park spaces and outdoor amentities (playgrounds and dog parks). Do areas with more affordable housing have different levels of "access" to parks? In this sense, I have chosen to define access by a level of promixity to parks of different amenity qualities.
 
 
-## Mapping Affordable Housing after PIP Operation
+## Part I: Mapping Affordable Housing after PIP Operation
 
 After counting the number of affordable housing units by each community area, the simplest way to summarize this spatial pattern, I plotted a chrolopleth map below. 
 
@@ -161,9 +165,85 @@ tm_shape(housing.parks.df) +
 
 The map has 6 unique bins, and it was evident from this plot that there are three community areas on the West and South side (Humbolt Park, North Lawndale, and Grand Boulevard) that have the highest number of afforable housing units compared to the rest of Chicago. Moving forward I will focus on **one of these three areas** and plot the difference in park numbers compared to neighboring peers.
 
-# Park Amenitities by Playground Availability
+# Part II: Park Amenitities by Playground Availability
 
-Similar to the chrolopleth map above, I want to look at the number of playgroudns in Chicago parks. However, since the point-in-polygon operation is already done for this dataset (that is, they already count the number of playgrounds without providing coordinate locations of each playground), I will be creating the chrolopleth map based on existing data provided.
+Similar to the chrolopleth map above, I want to look at the number of playgrounds in Chicago parks. However, since the point-in-polygon operation is already done for this dataset (that is, they already count the number of playgrounds without providing coordinate locations of each playground), I will be creating the chrolopleth map based on existing data provided.
+
+```{r playgrounds in polygon}
+
+# clean the playground variables
+playgrounds <- parks %>% 
+  select(geometry,
+         park,
+         playground,
+         playgrou_1) %>% 
+  mutate(playground_sum = playground + playgrou_1)
+
+
+tm_shape(housing.parks.df) + 
+  tm_fill("afford_house_ct", alpha = 0.7, n=6, pal = "YlOrRd", title="Affordable Housing") +
+tm_shape(playgrounds) + 
+  tm_polygons(col='playground', n=5, title = "Playgrounds", palette = "Greens")
+  
+```
+
+The map above overlays a simply chrolopeth map of the park areas in Chicago that have a playground (by number of playgrounds) with the previously created affordable housing chrolopleth of the PIP operation in part 1. We can see in this plot that Humbolt Park has a park with 5 playgrounds between its borders and West town. However, the rest of the smaller parks within Humbolt Park all have 0-2 playgrounds.
+
+
+# Part III: Incorporating Dog Park Points (w/ Buffers)
+
+
+
+```{r cleaning dog data}
+
+# cleaning coordinate data
+dog_parks <- dog_parks %>% 
+  separate("LOCATION", c("address", "LOCATION"), sep = "[(]") %>% 
+  separate("LOCATION", c("long", "lat"), sep = ",") %>% 
+  separate("lat", c("lat", "etc"), sep = "[)]") %>% 
+  mutate(long = as.numeric(long),
+         lat = as.numeric(lat)) %>% 
+  select(`PARK NUMBER`, `PARK NAME`, long, lat) %>% 
+  rename(park = `PARK NAME`)
+
+
+# turning dog park data to spatial data
+dog_pts <- st_as_sf(dog_parks, coords = c("lat","long"), crs = 4326)
+```
+
+
+```{r dog data spatial info}
+
+#save as a shp file
+#st_write(dog_pts, "dog_park_points.shp")
+
+#checking CRS
+#st_crs(playgrounds)
+#st_crs(dog_pts)
+
+#creating a buffer for dog-parks
+dog_buff <- st_buffer(dog_pts, dist = 0.002) #~ 2 km distance buffer
+
+
+# plot onto existing maps
+tm_shape(housing.parks.df) + 
+  tm_fill(col = "afford_house_ct", alpha = 0.7, n=6, pal = "YlOrRd", title="Affordable Housing") +
+tm_shape(playgrounds) + 
+  tm_polygons(col='playground', n=5, title = "Playgrounds", palette = "Greens") +
+tm_shape(dog_pts) +
+  tm_symbols(col = "#2b8cbe", size = 0.05, alpha = 0.7) +
+tm_shape(dog_buff) + 
+  tm_borders(col = "#a6bddb", alpha = 0.5, lwd = 2) 
+
+```
+
+I added 2 km buffers to the dog parks data to show a walkable reach to each designated dog park. Unsurprisingly, dog parks were in areas with few affordable housing units, perhaps due to the fact that the amenity caters towards a certain demographic of dog owners (aka. those who can afford to housing another living animal in their home/are permitted to have pets in their rental units).
+
+Humbolt Park does not have any explicit dog parks, according to this data.
+
+
+# Results and Dicussion
+
 
 
 
