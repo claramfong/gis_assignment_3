@@ -98,7 +98,7 @@ housing_pts <- st_as_sf(housing, coords = c("Longitude","Latitude"), crs = 4326)
 #housing.parks.df <- housing_pts
 ```
 
-# Understanding Affordable Housing
+# Part I: Understanding Affordable Housing
 
 ## Mapping Units of Affordable Housing as Points 
 
@@ -133,7 +133,7 @@ housing_pts <- st_transform(housing_pts, CRS.new)
 This map reflects two, maybe three, clusters of affordable housing units in the West and South of Chicago. This is something worth noting when exploring the kinds of areas that might have more park spaces and outdoor amentities (playgrounds and dog parks). Do areas with more affordable housing have different levels of "access" to parks? In this sense, I have chosen to define access by a level of promixity to parks of different amenity qualities.
 
 
-## Part I: Mapping Affordable Housing after PIP Operation
+## Mapping Affordable Housing after PIP Operation
 
 After counting the number of affordable housing units by each community area, the simplest way to summarize this spatial pattern, I plotted a chrolopleth map below. 
 
@@ -160,7 +160,7 @@ housing.parks.df <- merge(boundaries, housing_pip, by="community")
 tmap_mode("view")
 
 tm_shape(housing.parks.df) + 
-  tm_fill("afford_house_ct", n=6, pal = "PuBuGn", title="Number of Affordable Housing Units")
+  tm_fill("afford_house_ct", n=6, pal = "YlOrRd", title="Number of Affordable Housing Units")
 ```
 
 The map has 6 unique bins, and it was evident from this plot that there are three community areas on the West and South side (Humbolt Park, North Lawndale, and Grand Boulevard) that have the highest number of afforable housing units compared to the rest of Chicago. Moving forward I will focus on **one of these three areas** and plot the difference in park numbers compared to neighboring peers.
