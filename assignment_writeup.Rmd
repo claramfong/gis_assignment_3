@@ -2,12 +2,10 @@
 title: 'Assignment 3: Market Report Chicago'
 author: "Clara Fong"
 date: "5/25/2021"
-always_allow_html: true
 output:
-  html_document:
-    theme: cosmo
+ html_document:
     toc: yes
-    toc_float: true
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
